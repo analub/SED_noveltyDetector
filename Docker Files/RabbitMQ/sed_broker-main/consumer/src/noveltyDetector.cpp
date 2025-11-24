@@ -3,6 +3,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <algorithm>
+#include "arquivoTxt.h"
 
 using namespace std;
 
@@ -52,8 +53,18 @@ bool NoveltyDetector :: process()
 
     //_________________ DECLARAÇÕES E INICIALIZAÇÕES  _________________ //     
 
-    // Vetor de arquivos de entrada para os filtros base
-    vector<ifstream> input_W(3);            //ver sobre isso: quantidade não será 3? que tipo de dado é esse? 
+    // Arquivos de Texto
+    arquivoTxt out_FiltroNutall;
+    out_FiltroNutall.abrirEscrita("Resultados/Filtro/SinalFiltrado.txt");
+    arquivoTxt out_SinalEntrada;
+    out_SinalEntrada.abrirEscrita("Resultados/Filtro/SinalEntrada.txt");
+
+    arquivoTxt out_ZC;
+    out_ZC.abrirEscrita("Resultados/zeroCrossing/ZC.txt");
+
+    arquivoTxt out_FreqEstimada;
+    out_FreqEstimada.abrirEscrita("Resultados/zeroCrossing/FreqEstimada.txt");
+     
     
     //DEBUG
     ofstream output_samplecount;            // Sample count -> contador de amostras
@@ -78,13 +89,21 @@ bool NoveltyDetector :: process()
             
                 if(id_amostra%4 == 0 || id_amostra == 0 )
                 {
-                    // cout << "Valor: "<< Sample_ASDU[0] << "---- Filtrado: " << this->processar(Sample_ASDU[0]) << endl;
                     cout << "[NoveltyDetector] ID: " << id_amostra << " | Valor: " << Sample_ASDU[0] << " | Saida filtro: " << this->processar(Sample_ASDU[0]) << endl;
+                    
+                    out_FiltroNutall.escrever(to_string(this->processar(Sample_ASDU[0])) + "\n");  //salva no txt valor filtrado
+                    out_SinalEntrada.escrever(to_string(Sample_ASDU[0]) + "\n");   //salva no txt valor entrada
                 }  
         }
     }
 
     //cout << "[NoveltyDetector] Processamento concluído com sucesso!" << endl;
+
+    //=================== Fecha arquivos de texto ===================//
+    out_FiltroNutall.fechar();
+    out_SinalEntrada.fechar();
+    out_ZC.fechar();
+    out_FreqEstimada.fechar();
 
     return true;
 }
@@ -146,3 +165,5 @@ void NoveltyDetector :: resetFiltro() noexcept
 {
     fill(xn.begin(), xn.end(), 0.0f);
 }
+
+//=================================================================//
