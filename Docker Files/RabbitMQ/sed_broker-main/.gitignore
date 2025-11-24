@@ -1,0 +1,9 @@
+*.o
+core
+__pycache__/*
+__pycache__/
+venv/
+cppkafka-0.3.1/
+rust-consumer/target
+kafka_data/*
+rabbitmq_data/*

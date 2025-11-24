@@ -1,0 +1,94 @@
+networks:
+  kafka-net:
+    driver: bridge
+  process_bus:
+    driver: macvlan
+    driver_opts:
+      parent: enp1s0
+  station_bus:
+    driver: bridge
+
+services:
+  rabbitmq:
+    image: rabbitmq:4.1.0-management
+    container_name: rabbitmq
+    ports:
+      - 8080:15672
+      - 5671:5671
+      - 5672:5672
+      - 25672:25672
+    environment:
+      - RABBITMQ_DEFAULT_USER=dam
+      - RABBITMQ_DEFAULT_PASS=password
+    networks:
+      - station_bus
+    restart: unless-stopped
+
+  cm:
+    container_name: cm
+    build:
+      context: ./producer
+    volumes:
+      - "./producer:/acquisition_module"
+      - "./broker:/acquisition_module/libs"
+    networks:
+      - process_bus
+      - station_bus
+    environment:  
+      - USE_PCAP=true
+      - FILE_PATH='pcap_generator/iec61850_Teste1.pcap'
+      - DST_MAC='01:11:22:33:44:55'   #DST_MAC='01:0c:cd:04:00:04'
+      - SRC_MAC='01:11:22:33:44:55'   #SRC_MAC='f8:02:78:10:4d:16'
+    restart: unless-stopped
+    privileged: true
+    depends_on:
+      - rabbitmq
+
+  rabbitmq-consumer1:
+    container_name: rabbitmq-consumer1
+    build:
+      context: ./consumer
+    ports:
+      - 8083:8083
+    environment:
+      - CONSUMER_GROUP=consumer1
+      - N_CONSUMERS=3
+      - N_PRODUCERS=1
+      - EXPOSER_PORT=8083
+      - QUERY=consumer1_timestamp
+      - R_KEY='0102'
+      - PRIO=0
+    volumes:
+      # - "./consumer/Coefs:/consumer_module/Coefs"
+      # - "../../Results/Data:/consumer_module/Data"
+      - "./consumer:/consumer_module"
+      - "./consumer/entrypoint.sh:/consumer_module/entrypoint.sh:ro"
+      - "./broker:/consumer_module/libs"
+      - "../../Results/RabbitMQ/consumer1/Latency:/consumer_module/Latency"
+      - "../../Results/RabbitMQ/consumer1/Novelties:/consumer_module/Novelties"
+    networks:
+      - station_bus
+    restart: unless-stopped
+    privileged: TRUE
+    depends_on:
+      - rabbitmq
+      - cm
+
+  # python-consumer:
+  #   container_name: python-consumer
+  #   build:
+  #     context: ./python_consumer
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #     - PRIO=0
+  #     - R_KEY1='0102'
+  #     - R_KEY2='0202'
+  #   volumes:
+  #     - "./python_consumer:/python_consumer_module"
+  #     - "../../Results/RabbitMQ/python_consumer/phasors:/python_consumer_module/phasors"
+  #   networks:
+  #     - station_bus
+  #   restart: unless-stopped
+  #   privileged: true
+  #   depends_on:
+  #     - rabbitmq
